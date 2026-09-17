@@ -59,6 +59,16 @@ class UnavailableSession:
         raise OperationalError("SELECT 1", {}, RuntimeError("database down"))
 
 
+class SessionFactory:
+    def __init__(self, session: HealthySession | UnavailableSession) -> None:
+        self.session = session
+        self.calls = 0
+
+    def __call__(self) -> HealthySession | UnavailableSession:
+        self.calls += 1
+        return self.session
+
+
 def test_application_initializes_with_health_and_ready_routes() -> None:
     paths = {route.path for route in app.routes}
 
@@ -72,14 +82,17 @@ def test_health_does_not_require_database_configuration() -> None:
 
 
 def test_ready_returns_ok_when_database_query_succeeds(monkeypatch) -> None:
-    monkeypatch.setattr("app.main.get_session_factory", lambda: HealthySession())
+    session_factory = SessionFactory(HealthySession())
+    monkeypatch.setattr("app.main.get_session_factory", lambda: session_factory)
 
     assert readiness() == {"status": "ok"}
     assert get("/ready") == (200, {"status": "ok"})
+    assert session_factory.calls == 2
 
 
 def test_ready_returns_503_when_database_query_fails(monkeypatch) -> None:
-    monkeypatch.setattr("app.main.get_session_factory", lambda: UnavailableSession())
+    session_factory = SessionFactory(UnavailableSession())
+    monkeypatch.setattr("app.main.get_session_factory", lambda: session_factory)
 
     with pytest.raises(HTTPException) as raised:
         readiness()
@@ -87,3 +100,4 @@ def test_ready_returns_503_when_database_query_fails(monkeypatch) -> None:
     assert raised.value.status_code == 503
     assert raised.value.detail == "database unavailable"
     assert get("/ready") == (503, {"detail": "database unavailable"})
+    assert session_factory.calls == 2

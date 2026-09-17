@@ -7,6 +7,10 @@ import pytest
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config import get_settings
+from app.db.session import get_engine, get_session_factory
+from app.main import readiness
+
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(
@@ -61,3 +65,17 @@ def test_postgresql_constraints_reject_invalid_cnpj() -> None:
             )
     engine.dispose()
 
+
+def test_ready_uses_real_session_factory_against_postgresql(monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL or "")
+    get_settings.cache_clear()
+    get_session_factory.cache_clear()
+    get_engine.cache_clear()
+
+    try:
+        assert readiness() == {"status": "ok"}
+    finally:
+        get_engine().dispose()
+        get_session_factory.cache_clear()
+        get_engine.cache_clear()
+        get_settings.cache_clear()

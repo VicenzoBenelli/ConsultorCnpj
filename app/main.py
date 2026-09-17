@@ -17,7 +17,8 @@ def health() -> dict[str, str]:
 @app.get("/ready")
 def readiness() -> dict[str, str]:
     try:
-        with get_session_factory() as session:
+        session_factory = get_session_factory()
+        with session_factory() as session:
             session.execute(text("SELECT 1"))
     except (SQLAlchemyError, ValidationError) as error:
         raise HTTPException(
@@ -25,4 +26,3 @@ def readiness() -> dict[str, str]:
             detail="database unavailable",
         ) from error
     return {"status": "ok"}
-
