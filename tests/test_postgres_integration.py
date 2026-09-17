@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import uuid
+from collections.abc import Iterator
 
 import pytest
 from sqlalchemy import create_engine, inspect, text
@@ -30,7 +31,7 @@ def run_alembic(command: str) -> None:
 
 
 @pytest.fixture(scope="module", autouse=True)
-def migrated_database() -> None:
+def migrated_database() -> Iterator[None]:
     run_alembic("upgrade")
     yield
     run_alembic("downgrade")

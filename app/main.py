@@ -3,10 +3,12 @@ from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.jobs import router as jobs_router
 from app.db.session import get_session_factory
 
 
 app = FastAPI(title="Automacao de Consulta de CNPJ")
+app.include_router(jobs_router)
 
 
 @app.get("/health")

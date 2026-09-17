@@ -70,7 +70,7 @@ class SessionFactory:
 
 
 def test_application_initializes_with_health_and_ready_routes() -> None:
-    paths = {route.path for route in app.routes}
+    paths = {route.path for route in app.routes if hasattr(route, "path")}
 
     assert "/health" in paths
     assert "/ready" in paths
