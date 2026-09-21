@@ -24,3 +24,18 @@ class JobStatusResponse(CreateJobResponse):
     not_found: int
     failed: int
     processed: int
+
+
+class JobResultResponse(BaseModel):
+    cnpj: str
+    status: str
+    razao_social: str | None
+    telefone: str | None
+    email: str | None
+
+
+class JobResultsResponse(BaseModel):
+    id: uuid.UUID
+    status: str
+    total: int
+    results: list[JobResultResponse]
