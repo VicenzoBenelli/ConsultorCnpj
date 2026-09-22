@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Acompanhar consulta | Consulta de CNPJ{% endblock %}
+
+{% block content %}
+<section id="job-page" class="job-page" data-job-id="{{ job_id }}">
+  <section class="page-intro page-intro--job">
+    <a class="back-link" href="/">← Nova consulta</a>
+    <h1>Acompanhar consulta</h1>
+    <p class="job-id">Job: <code>{{ job_id }}</code></p>
+  </section>
+
+  <div id="job-alert" class="alert" role="alert" aria-live="polite" hidden></div>
+
+  <section class="panel status-panel" aria-live="polite">
+    <div class="status-panel__header">
+      <span class="section-eyebrow">Status geral</span>
+      <strong id="job-status" class="status-badge">Carregando</strong>
+    </div>
+    <p id="job-status-hint" class="status-hint">Carregando informações da consulta.</p>
+    <p id="job-progress-text" class="progress-text">Processados: 0 de 0</p>
+    <progress id="job-progress" value="0" max="1" aria-label="Progresso do processamento">0</progress>
+    <dl class="summary-grid">
+      <div class="summary-card summary-card--success"><dt>Sucesso</dt><dd id="success-count">0</dd></div>
+      <div class="summary-card summary-card--neutral"><dt>Não encontrados</dt><dd id="not-found-count">0</dd></div>
+      <div class="summary-card summary-card--danger"><dt>Falhas</dt><dd id="failed-count">0</dd></div>
+    </dl>
+    <a id="download-link" class="button button--download is-disabled" aria-disabled="true" tabindex="-1">Baixar planilha Excel</a>
+  </section>
+
+  <section class="panel results-panel">
+    <div class="results-panel__header"><h2>Resultados</h2><p>Os dados aparecem conforme o processamento avança.</p></div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>CNPJ</th><th>Status</th><th>Razão social</th><th>Telefone</th><th>E-mail</th></tr></thead>
+        <tbody id="results-table-body"><tr><td class="empty-state" colspan="5">Carregando resultados…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', path='js/job.js') }}"></script>
+{% endblock %}

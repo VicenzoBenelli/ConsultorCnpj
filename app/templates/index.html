@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Criar consulta | Consulta de CNPJ{% endblock %}
+
+{% block content %}
+<section class="page-intro page-intro--home">
+  <h1>Consulte CNPJs em lote</h1>
+  <p>Cole um CNPJ por linha ou separe os valores por espaços, vírgulas ou ponto e vírgula.</p>
+</section>
+
+<section class="panel home-form-panel">
+  <form id="job-form" class="form-stack" novalidate>
+    <label for="cnpjs">Lista de CNPJs</label>
+    <textarea id="cnpjs" name="cnpjs" rows="12" placeholder="12.345.678/0001-95&#10;11.222.333/0001-81" aria-describedby="cnpj-line-count form-feedback"></textarea>
+    <div class="form-footer">
+      <p id="cnpj-line-count" class="help-text">0 linhas não vazias</p>
+      <button id="create-job-button" class="button button--primary" type="submit">Criar consulta</button>
+    </div>
+    <div id="form-feedback" class="alert" role="alert" aria-live="polite" hidden></div>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', path='js/index.js') }}"></script>
+{% endblock %}

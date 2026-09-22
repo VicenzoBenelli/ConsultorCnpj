@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Consulta de CNPJ{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__content">
+        <a class="brand" href="/"><span class="brand__mark" aria-hidden="true"></span>Consulta de CNPJ</a>
+      </div>
+    </header>
+    <main class="container page-content">{% block content %}{% endblock %}</main>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
