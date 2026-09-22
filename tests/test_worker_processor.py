@@ -75,3 +75,20 @@ def test_processor_429_blocks_and_reschedules_without_retry(monkeypatch) -> None
     WorkerProcessor(lambda: NoopSession(), client, settings(), now=lambda: now, sleep=lambda _: None).process_one()
 
     assert rescheduled["details"] == "wait"
+
+
+def test_processor_stops_before_waiting_for_rate_gate(monkeypatch) -> None:
+    item_id = uuid4()
+    client = FakeClient(CnpjWsResponse(200, {}))
+    monkeypatch.setattr("app.worker.processor.request_permission", lambda *args: (_ for _ in ()).throw(AssertionError()))
+
+    processor = WorkerProcessor(
+        lambda: NoopSession(),
+        client,
+        settings(),
+        should_stop=lambda: True,
+    )
+
+    processor._wait_for_rate_gate(item_id)
+
+    assert client.cnpjs == []

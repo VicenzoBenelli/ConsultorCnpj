@@ -30,6 +30,19 @@ def test_settings_normalizes_render_postgresql_url_for_psycopg(monkeypatch) -> N
     get_settings.cache_clear()
 
 
+def test_settings_embedded_worker_defaults_to_false_and_accepts_true(monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/app")
+    monkeypatch.delenv("RUN_EMBEDDED_WORKER", raising=False)
+    get_settings.cache_clear()
+
+    assert get_settings().run_embedded_worker is False
+
+    monkeypatch.setenv("RUN_EMBEDDED_WORKER", "true")
+    get_settings.cache_clear()
+    assert get_settings().run_embedded_worker is True
+    get_settings.cache_clear()
+
+
 def test_settings_rejects_non_positive_max_cnpjs_per_job(monkeypatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/app")
     monkeypatch.setenv("MAX_CNPJS_PER_JOB", "0")

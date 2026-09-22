@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from app.main import app, health, readiness
+from app.main import app, health, lifespan, readiness
 
 
 def get(path: str) -> tuple[int, dict[str, str]]:
@@ -79,6 +79,50 @@ def test_application_initializes_with_health_and_ready_routes() -> None:
 def test_health_does_not_require_database_configuration() -> None:
     assert health() == {"status": "ok"}
     assert get("/health") == (200, {"status": "ok"})
+
+
+def test_lifespan_does_not_start_embedded_worker_when_disabled(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.get_settings", lambda: type("Settings", (), {"run_embedded_worker": False})())
+    monkeypatch.setattr("app.main.EmbeddedWorker", lambda: pytest.fail("embedded worker must stay disabled"))
+
+    async def exercise_lifespan() -> None:
+        async with lifespan(app):
+            assert getattr(app.state, "embedded_worker", None) is None
+
+    asyncio.run(exercise_lifespan())
+
+
+def test_lifespan_starts_and_stops_embedded_worker_when_enabled(monkeypatch) -> None:
+    instances: list[object] = []
+
+    class FakeEmbeddedWorker:
+        def __init__(self) -> None:
+            self.started = 0
+            self.stopped = 0
+            instances.append(self)
+
+        def start(self) -> bool:
+            self.started += 1
+            return True
+
+        def stop(self) -> bool:
+            self.stopped += 1
+            return True
+
+    monkeypatch.setattr("app.main.get_settings", lambda: type("Settings", (), {"run_embedded_worker": True})())
+    monkeypatch.setattr("app.main.EmbeddedWorker", FakeEmbeddedWorker)
+
+    async def exercise_lifespan() -> None:
+        async with lifespan(app):
+            assert len(instances) == 1
+            assert app.state.embedded_worker is instances[0]
+
+    asyncio.run(exercise_lifespan())
+
+    worker = instances[0]
+    assert worker.started == 1
+    assert worker.stopped == 1
+    assert app.state.embedded_worker is None
 
 
 def test_ready_returns_ok_when_database_query_succeeds(monkeypatch) -> None:

@@ -5,16 +5,16 @@ síncrono e disponibilizar resultados e exportação XLSX.
 
 ## Deploy no Render
 
-### Arquitetura
+### Perfil gratuito
 
-O deploy usa três recursos na mesma região do Render:
+O perfil gratuito usa dois recursos em `virginia`:
 
-- Web Service: FastAPI, Jinja2 e arquivos estáticos;
-- Background Worker: processamento da fila PostgreSQL e consultas à CNPJ.ws;
-- Render PostgreSQL: banco da aplicação, fila, leases e rate limiter global.
+- Web Service Free: FastAPI, Jinja2, arquivos estáticos e Embedded Worker;
+- Render PostgreSQL Free: banco, fila, leases e rate limiter global.
 
-Web e Worker usam a mesma Internal Database URL. O acesso externo ao banco é
-bloqueado pelo Blueprint; não use a External Database URL para os serviços.
+Com `RUN_EMBEDDED_WORKER=true`, o worker síncrono roda em uma thread do mesmo
+processo Web. O Web usa a Internal Database URL, e o acesso externo ao banco é
+bloqueado pelo Blueprint.
 
 ### Runtime e comandos
 
@@ -36,6 +36,7 @@ O Blueprint configura somente as variáveis necessárias em produção:
 - `DATABASE_URL`: referência interna dinâmica ao PostgreSQL do Render;
 - `APP_ENV=production`;
 - `LOG_LEVEL=INFO`.
+- `RUN_EMBEDDED_WORKER=true` somente no perfil gratuito do Render.
 
 As demais configurações possuem defaults em `app.core.config.Settings`.
 `TEST_DATABASE_URL` é exclusivo de testes e não deve ser configurada no Render.
@@ -46,25 +47,16 @@ Não versione `.env`, `.env.test` ou credenciais.
 - `/health` é o health check do Render e não depende do banco;
 - `/ready` verifica o PostgreSQL e deve ser usado para diagnóstico e smoke.
 
-### Primeiro bootstrap
+### Worker embedded
 
-O `render.yaml` atual é propositalmente o bootstrap em duas etapas, para que o
-Worker não inicie antes de o schema existir.
+O worker inicia somente no lifespan real do FastAPI, nunca durante import,
+build ou Alembic. No encerramento, o Web sinaliza a thread e aguarda até 20
+segundos de forma cooperativa. O Render permite até 60 segundos de shutdown.
 
-**Fase A — primeiro deploy**
-
-1. O Blueprint cria o Render PostgreSQL e o Render Web Service em `virginia`.
-2. O build do Web executa `python -m alembic upgrade head`.
-3. Confirme `GET /health` com HTTP 200.
-4. Confirme `GET /ready` com HTTP 200.
-
-**Fase B — após sucesso da Fase A**
-
-1. Adicione novamente `cnpj-consulta-worker` ao `render.yaml`.
-2. Faça commit e push da alteração.
-3. O Render cria o Background Worker.
-4. Confirme o início do Worker nos logs.
-5. Execute o smoke com um CNPJ.
+Para desenvolvimento local, mantenha `RUN_EMBEDDED_WORKER=false` e execute o
+Web com `--reload` e o worker em terminal separado. Para testar o modo
+embedded, use `RUN_EMBEDDED_WORKER=true`, suba somente o Web e não use
+`--reload`.
 
 ### Smoke pós-deploy
 
@@ -79,9 +71,19 @@ Worker não inicie antes de o schema existir.
 
 - Web e PostgreSQL usam `plan: free`; o Web entra em spin-down após
   inatividade e pode apresentar cold start no próximo acesso.
+- Enquanto o Web está suspenso, o Embedded Worker também está parado. Ao acordar
+  após uma nova requisição, a recuperação de leases permite retomar itens que
+  ficaram em processamento; a semântica continua at-least-once.
 - O PostgreSQL Free expira após 30 dias e não é apropriado para uso estável.
-- O Background Worker do Render não possui plano Free. Ele permanece ausente
-  deste primeiro Blueprint e será configurado somente na próxima etapa.
+- Lotes grandes não são apropriados para processamento desacompanhado no perfil
+  Free; o polling da interface mantém tráfego real somente enquanto a página
+  está aberta.
 - A aplicação é pública e não possui autenticação: qualquer visitante pode
   criar Jobs.
 - Jobs e resultados não possuem política automática de retenção.
+
+### Perfil pago futuro
+
+Para voltar ao modelo contínuo, defina `RUN_EMBEDDED_WORKER=false` no Web e
+crie um Background Worker separado com `python -m app.worker.main`. O mesmo
+PostgreSQL, fila, leases e rate limiter continuam sendo usados.

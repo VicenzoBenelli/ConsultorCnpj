@@ -40,12 +40,14 @@ class WorkerProcessor:
         *,
         now: Callable[[], datetime] | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        should_stop: Callable[[], bool] = lambda: False,
     ) -> None:
         self._session_factory = session_factory
         self._client = client
         self._settings = settings
         self._now = now or (lambda: datetime.now(UTC))
         self._sleep = sleep
+        self._should_stop = should_stop
 
     def recover_leases(self) -> int:
         with self._session_factory() as session:
@@ -76,7 +78,7 @@ class WorkerProcessor:
         return True
 
     def _wait_for_rate_gate(self, item_id: uuid.UUID) -> None:
-        while True:
+        while not self._should_stop():
             now = self._now()
 
             with self._session_factory() as session:

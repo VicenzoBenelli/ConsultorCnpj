@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     cnpjws_429_cooldown_seconds: int = Field(default=60, ge=60, validation_alias="CNPJWS_429_COOLDOWN_SECONDS")
     worker_poll_interval_seconds: int = Field(default=5, gt=0, validation_alias="WORKER_POLL_INTERVAL_SECONDS")
     worker_lease_seconds: int = Field(default=60, gt=0, validation_alias="WORKER_LEASE_SECONDS")
+    run_embedded_worker: bool = Field(default=False, validation_alias="RUN_EMBEDDED_WORKER")
 
     @field_validator("database_url", mode="before")
     @classmethod

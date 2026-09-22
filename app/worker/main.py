@@ -3,9 +3,7 @@ import signal
 import threading
 
 from app.core.config import get_settings
-from app.db.session import get_session_factory
-from app.services.cnpj_ws import CnpjWsClient
-from app.worker.processor import WorkerProcessor
+from app.worker.runner import run_worker
 
 
 def run() -> None:
@@ -19,17 +17,7 @@ def run() -> None:
 
     signal.signal(signal.SIGINT, request_stop)
     signal.signal(signal.SIGTERM, request_stop)
-    client = CnpjWsClient(settings.cnpjws_base_url, settings.cnpjws_timeout_seconds)
-    processor = WorkerProcessor(get_session_factory(), client, settings, sleep=stop_event.wait)
-    logging.getLogger(__name__).info("Worker started")
-    try:
-        while not stop_event.is_set():
-            processor.recover_leases()
-            if not processor.process_one():
-                stop_event.wait(settings.worker_poll_interval_seconds)
-    finally:
-        client.close()
-        logging.getLogger(__name__).info("Worker stopped")
+    run_worker(stop_event)
 
 
 if __name__ == "__main__":
