@@ -20,6 +20,16 @@ def test_settings_reads_required_database_url(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+def test_settings_normalizes_render_postgresql_url_for_psycopg(monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:password@database:5432/app")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.database_url == "postgresql+psycopg://user:password@database:5432/app"
+    get_settings.cache_clear()
+
+
 def test_settings_rejects_non_positive_max_cnpjs_per_job(monkeypatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/app")
     monkeypatch.setenv("MAX_CNPJS_PER_JOB", "0")

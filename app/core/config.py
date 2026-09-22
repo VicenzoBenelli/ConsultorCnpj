@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     cnpjws_429_cooldown_seconds: int = Field(default=60, ge=60, validation_alias="CNPJWS_429_COOLDOWN_SECONDS")
     worker_poll_interval_seconds: int = Field(default=5, gt=0, validation_alias="WORKER_POLL_INTERVAL_SECONDS")
     worker_lease_seconds: int = Field(default=60, gt=0, validation_alias="WORKER_LEASE_SECONDS")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def use_psycopg_for_render_postgres(cls, value: object) -> object:
+        """Makes Render's PostgreSQL URL select the installed psycopg 3 dialect."""
+        if isinstance(value, str) and value.startswith("postgresql://"):
+            return f"postgresql+psycopg://{value.removeprefix('postgresql://')}"
+        return value
 
     @model_validator(mode="after")
     def validate_worker_lease(self) -> "Settings":
