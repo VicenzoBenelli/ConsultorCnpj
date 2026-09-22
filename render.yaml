@@ -3,10 +3,9 @@ services:
     name: cnpj-consulta-web
     runtime: python
     region: virginia
-    plan: 0.5c-512mb
+    plan: free
     numInstances: 1
-    buildCommand: pip install -r requirements.txt
-    preDeployCommand: python -m alembic upgrade head
+    buildCommand: pip install -r requirements.txt && python -m alembic upgrade head
     startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeployTrigger: commit
@@ -23,6 +22,6 @@ services:
 databases:
   - name: cnpj-consulta-db
     region: virginia
-    plan: 0.1c-256mb
+    plan: free
     ipAllowList: []
     connectionPool: none

@@ -20,14 +20,14 @@ bloqueado pelo Blueprint; não use a External Database URL para os serviços.
 
 O runtime é Python 3.12.10, fixado em `.python-version`.
 
-| Serviço | Build | Pre-deploy | Start |
-| --- | --- | --- | --- |
-| Web | `pip install -r requirements.txt` | `python -m alembic upgrade head` | `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Worker | `pip install -r requirements.txt` | — | `python -m app.worker.main` |
+| Serviço | Build | Start |
+| --- | --- | --- |
+| Web Free (Fase A) | `pip install -r requirements.txt && python -m alembic upgrade head` | `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 
-Somente o Web executa migrations. O Worker nunca executa Alembic. O build não
-executa pytest: testes de integração exigem banco de teste isolado e jamais
-devem apontar para o banco de produção.
+O perfil gratuito de demonstração não oferece `preDeployCommand` para o Web;
+por isso, o build executa Alembic. O build não executa pytest: testes de
+integração exigem banco de teste isolado e jamais devem apontar para o banco de
+produção.
 
 ### Variáveis de ambiente
 
@@ -54,7 +54,7 @@ Worker não inicie antes de o schema existir.
 **Fase A — primeiro deploy**
 
 1. O Blueprint cria o Render PostgreSQL e o Render Web Service em `virginia`.
-2. O pre-deploy do Web executa `python -m alembic upgrade head`.
+2. O build do Web executa `python -m alembic upgrade head`.
 3. Confirme `GET /health` com HTTP 200.
 4. Confirme `GET /ready` com HTTP 200.
 
@@ -75,12 +75,13 @@ Worker não inicie antes de o schema existir.
    `SUCCESS`.
 5. Baixe e abra o XLSX.
 
-### Limitações operacionais
+### Limitações do perfil gratuito de demonstração
 
-- O Worker é um recurso pago no Render; o perfil estável definido no Blueprint
-  usa 0.5 CPU/512 MB para Web e Worker e 0.1 CPU/256 MB para PostgreSQL.
+- Web e PostgreSQL usam `plan: free`; o Web entra em spin-down após
+  inatividade e pode apresentar cold start no próximo acesso.
+- O PostgreSQL Free expira após 30 dias e não é apropriado para uso estável.
+- O Background Worker do Render não possui plano Free. Ele permanece ausente
+  deste primeiro Blueprint e será configurado somente na próxima etapa.
 - A aplicação é pública e não possui autenticação: qualquer visitante pode
   criar Jobs.
 - Jobs e resultados não possuem política automática de retenção.
-- Começar com uma instância Web e uma Worker preserva o rate limiter global e
-  evita ampliar custo e concorrência sem validação de produção.
