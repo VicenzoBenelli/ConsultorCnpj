@@ -46,19 +46,25 @@ Não versione `.env`, `.env.test` ou credenciais.
 - `/health` é o health check do Render e não depende do banco;
 - `/ready` verifica o PostgreSQL e deve ser usado para diagnóstico e smoke.
 
-### Primeiro deploy
+### Primeiro bootstrap
 
-Para impedir que o Worker rode antes do schema existir:
+O `render.yaml` atual é propositalmente o bootstrap em duas etapas, para que o
+Worker não inicie antes de o schema existir.
 
-1. Crie o PostgreSQL e o Web Service pelo Blueprint, inicialmente sem habilitar
-   o Worker.
+**Fase A — primeiro deploy**
+
+1. O Blueprint cria o Render PostgreSQL e o Render Web Service em `virginia`.
 2. O pre-deploy do Web executa `python -m alembic upgrade head`.
-3. Confirme `GET /health` e `GET /ready`.
-4. Habilite o Background Worker e confirme o início nos logs.
+3. Confirme `GET /health` com HTTP 200.
+4. Confirme `GET /ready` com HTTP 200.
 
-O `render.yaml` final declara os três recursos. Para o bootstrap seguro,
-publique primeiro uma revisão temporária que contenha apenas banco e Web; após
-validar readiness, publique a revisão que inclui o Worker.
+**Fase B — após sucesso da Fase A**
+
+1. Adicione novamente `cnpj-consulta-worker` ao `render.yaml`.
+2. Faça commit e push da alteração.
+3. O Render cria o Background Worker.
+4. Confirme o início do Worker nos logs.
+5. Execute o smoke com um CNPJ.
 
 ### Smoke pós-deploy
 
